@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Seat Reservation Service
+  version: 1.0.0
+  description: |
+    This is a simple API for the Seat Reservation Service.
+    The goal is to show how a client and server communicate using HTTP methods.
+    We use GET to read data, POST to create something new, and DELETE to remove it.
+    Each endpoint has clear inputs and outputs, with error codes for when things go wrong.
+paths:
+  /showtimes:
+    get:
+      summary: Get a list of showtimes
+      description: |
+        The client calls this to see what showtimes exist for a specific movie and date.
+        This is a read operation, so it does not change anything on the server.
+      parameters:
+        - in: query
+          name: movieId
+          required: true
+          schema:
+            type: string
+          description: The movie we want to view showtimes for.
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+          description: The date we want to see showtimes for.
+      responses:
+        "200":
+          description: Successful response with showtimes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Showtime"
+        "400":
+          description: Invalid input or missing parameter.
+        "404":
+          description: No showtimes found for that movie and date.
+
+  /reservations:
+    post:
+      summary: Create a seat hold
+      description: |
+        The client uses this to temporarily hold seats before confirming purchase.
+        The hold expires automatically if not confirmed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReservationRequest"
+      responses:
+        "201":
+          description: Reservation created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Invalid seat or input.
+        "409":
+          description: Seat already held or sold.
+
+  /reservations/{reservationId}:
+    delete:
+      summary: Cancel a seat hold
+      description: |
+        This removes an existing reservation hold before it expires.
+      parameters:
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+          description: The reservation we want to cancel.
+      responses:
+        "204":
+          description: Reservation canceled.
+        "404":
+          description: Reservation not found.
+        "409":
+          description: Reservation already confirmed or expired.
+
+components:
+  schemas:
+    Showtime:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "st_12345"
+        movieId:
+          type: string
+          example: "mv_001"
+        startTime:
+          type: string
+          format: date-time
+          example: "2025-11-05T19:30:00Z"
+
+    CreateReservationRequest:
+      type: object
+      properties:
+        showtimeId:
+          type: string
+          example: "st_12345"
+        seatIds:
+          type: array
+          items:
+            type: string
+          example: ["A-10", "A-11"]
+        holdMinutes:
+          type: integer
+          example: 10
+
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "res_abc123"
+        showtimeId:
+          type: string
+          example: "st_12345"
+        seatIds:
+          type: array
+          items:
+            type: string
+          example: ["A-10", "A-11"]
+        status:
+          type: string
+          example: "held"
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2025-11-05T19:45:00Z"
